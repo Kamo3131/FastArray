@@ -78,7 +78,6 @@ class FastVector {
         }
         void push_back(const_reference item){
             if(current_size >= current_capacity){
-                // For now, till I do reserved
                 grow();
             }
             new (&data_ptr[current_size]) T(item);
@@ -87,7 +86,6 @@ class FastVector {
         template <typename... Args>
         void emplace_back(Args&&... args){
             if(current_size >= current_capacity){
-                // For now, till I do reserved
                 grow();
             }
             new (&data_ptr[current_size]) T(std::forward<Args>(args)...);
@@ -99,7 +97,20 @@ class FastVector {
         }
 
         void grow() {
-            throw std::out_of_range("Vector full. Growth not yet implemented");
+            size_type new_capacity = current_capacity ? current_capacity*2 : 1;
+            value_type* new_ptr = static_cast<value_type*>(::operator new(new_capacity * sizeof(T)));
+            
+            for(size_type i = 0; i < current_size; ++i) {
+                new (&new_ptr[i]) T(std::move(data_ptr[i]));
+                data_ptr[i].~T();
+            }
+
+            if(is_heap_allocated()){
+                ::operator delete(data_ptr);
+            }
+
+            data_ptr = new_ptr;
+            current_capacity = new_capacity;
         }
         value_type* data_ptr;
         size_type current_size = 0;
